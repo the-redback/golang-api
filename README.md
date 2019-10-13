@@ -9,14 +9,18 @@ docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=pass -v $HOME/pg-da
 To run,
 
 ```bash
-$ make build
-$ make run
+$ make
+```
+
+To build and run,
+
+```bash
+$ make build run
 ```
 
 Push Docker image,
 
 ```bash
 $ export REGISTRY=<docker-registry-name>
-$ make build
-$ make push
+$ make build push
 ```

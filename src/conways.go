@@ -3,11 +3,13 @@ package conways
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bmizerany/pat"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
+
+	"github.com/bmizerany/pat"
 )
 
 type Conways struct {
@@ -17,6 +19,18 @@ type Conways struct {
 	Data string `json:"data"`
 }
 
+type AgeQuery struct {
+	ID   int       `json:"id"`
+	X    int       `json:"x"`
+	Y    int       `json:"y"`
+	Data []AgeData `json:"data"`
+}
+
+type AgeData struct {
+	Age  int    `json:"age"`
+	Grid string `json:"grid"`
+}
+
 func ListenAndServe() {
 	fmt.Println("start serving...")
 
@@ -24,6 +38,7 @@ func ListenAndServe() {
 	m.Post("/grids", http.HandlerFunc(PostGrids))
 	m.Patch("/grids/:id", http.HandlerFunc(PatchGrids))
 	m.Get("/grids/:id", http.HandlerFunc(GetGrids))
+	m.Get("/grids/:id/:age", http.HandlerFunc(QueryGrids))
 
 	// Register this pat with the default serve mux so that other packages
 	// may also be exported. (i.e. /debug/pprof/*)
@@ -45,7 +60,7 @@ func GetGrids(w http.ResponseWriter, req *http.Request) {
 	log.Println("received patch response for", id)
 
 	var data Conways
-	data.ID=id
+	data.ID = id
 
 	en := connect_database()
 	defer en.Close()
@@ -134,7 +149,7 @@ func PatchGrids(w http.ResponseWriter, req *http.Request) {
 		log.Println("error during unmarshal data: ", err)
 		return
 	}
-	data.ID=id
+	data.ID = id
 
 	en := connect_database()
 	defer en.Close()
@@ -142,6 +157,63 @@ func PatchGrids(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	marshalledData, err := json.Marshal(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error during marshal data"))
+		log.Println("error during marshal data: ", err)
+		return
+	}
+	w.Write(marshalledData)
+}
+
+func QueryGrids(w http.ResponseWriter, req *http.Request) {
+	id, err := strconv.Atoi(req.URL.Query().Get(":id"))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("error during reading from ioutil: ", err)
+		return
+	}
+	s := strings.Split(req.URL.Query().Get("age"), ",")
+
+	var data Conways
+	data.ID = id
+
+	en := connect_database()
+	defer en.Close()
+	has, err := query_data(en, &data)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("error during reading from database: ", err)
+		return
+	} else if !has {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("requested data not found"))
+		log.Println("requested data not found")
+		return
+	}
+
+	ageQuery := new(AgeQuery)
+	ageQuery.ID = data.ID
+	ageQuery.X = data.X
+	ageQuery.Y = data.Y
+	for _, val := range s {
+		v, err := strconv.Atoi(val)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		ageQuery.Data = append(ageQuery.Data, AgeData{
+			Age:  v,
+			Grid: data.Data,
+		})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	marshalledData, err := json.Marshal(ageQuery)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error during marshal data"))
