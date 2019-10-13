@@ -18,6 +18,12 @@ const (
 	DB_NAME     = "postgres"
 )
 
+func init() {
+	en := connect_database()
+	defer en.Close()
+	sync_tables(en)
+}
+
 func connect_database() *xorm.Engine {
 	dbinfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
