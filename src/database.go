@@ -16,13 +16,6 @@ const (
 	DB_NAME     = "postgres"
 )
 
-type Conways struct{
-	Uid int64  `xorm:"pk not null autoincr"`
-	XAxis int64
-	YAxis int64
-	Grid string
-}
-
 
 func connect_database() *xorm.Engine{
 	dbinfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
@@ -53,20 +46,13 @@ func sync_tables(en *xorm.Engine){
 	log.Println("Successfully synced")
 }
 
-func insert_data(en *xorm.Engine){
-	u:=new(Conways)
-	u.Uid=3
-	u.XAxis=3
-	u.YAxis=3
-	u.Grid="***...***"
-	affected, _ :=en.Insert(u)
-
-	log.Println("Inserted user id:",u.Uid,":: affected:",affected)
+func insert_data(en *xorm.Engine, data *Conways){
+	affected, _ :=en.Insert(data)
+	log.Println("Inserted user id:",data.ID,":: affected:",affected,"data")
 }
 
-
 func query_single_data(en *xorm.Engine){
-	user:=Conways{Uid: 1}
+	user:=Conways{ID: 1}
 	has,_:=en.Get(&user)
 
 	log.Println("-----------",has)
