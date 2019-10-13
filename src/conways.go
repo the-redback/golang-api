@@ -206,6 +206,11 @@ func QueryGrids(w http.ResponseWriter, req *http.Request) {
 			w.Write([]byte(err.Error()))
 			return
 		}
+
+		// begin the age calculation magic here!!
+		// Start
+		//
+		// End
 		ageQuery.Data = append(ageQuery.Data, AgeData{
 			Age:  v,
 			Grid: data.Data,
