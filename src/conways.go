@@ -207,13 +207,9 @@ func QueryGrids(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		// begin the age calculation magic here!!
-		// Start
-		//
-		// End
 		ageQuery.Data = append(ageQuery.Data, AgeData{
 			Age:  v,
-			Grid: data.Data,
+			Grid: calculateGrid(v, data),
 		})
 	}
 
@@ -226,4 +222,67 @@ func QueryGrids(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	w.Write(marshalledData)
+}
+
+func calculateGrid(age int, data Conways) string {
+	x := data.X
+	y := data.Y
+	dx := [8]int{-1, 0, 0, 1, -1, -1, 1, 1}
+	dy := [8]int{0, -1, 1, 0, -1, 1, -1, 1}
+
+	var counter int
+	var mat = make([][]string, x)
+	var tempMat = make([][]string, x)
+	for i := range mat {
+		mat[i] = make([]string, y)
+		tempMat[i] = make([]string, y)
+		for j := 0; j < y; j++ {
+			mat[i][j] = data.Data[counter : counter+1]
+			tempMat[i][j] = mat[i][j]
+			counter++
+		}
+	}
+
+	for k := 0; k < age; k++ {
+		for i := 0; i < x; i++ {
+			for j := 0; j < y; j++ {
+				live := 0
+				for idx := 0; idx < 8; idx++ {
+					xx := i + dx[idx]
+					yy := j + dy[idx]
+
+					if xx < 0 || yy < 0 || xx >= x || yy >= y {
+						continue
+					}
+					if mat[xx][yy] == "." {
+						live++
+					}
+				}
+				if mat[i][j] == "." && live < 2 {
+					// Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+					tempMat[i][j] = "*"
+				} else if mat[i][j] == "." && live == 2 || live == 3 {
+					// Any live cell with two or three live neighbours lives on to the next generation.
+					tempMat[i][j] = "."
+				} else if mat[i][j] == "*" && live == 3 {
+					// Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+					tempMat[i][j] = "."
+				} else if mat[i][j] == "." && live > 3 {
+					// Any live cell with more than three live neighbours dies, as if by overpopulation.
+					tempMat[i][j] = "*"
+				}
+			}
+		}
+		mat = tempMat
+	}
+
+	var grid string
+
+	for i := range mat {
+		for j := range mat[i] {
+			grid += mat[i][j]
+		}
+	}
+
+	return grid
 }
