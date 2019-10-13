@@ -26,7 +26,8 @@ func connect_database() *xorm.Engine{
 		log.Println("engine creation failed", err)
 	}
 
-	//defer post.db.Close()
+	// whenever this engine is used,
+	// defer post.db.Close()
 
 	err =en.Ping()
 	if err !=nil{
@@ -46,31 +47,18 @@ func sync_tables(en *xorm.Engine){
 	log.Println("Successfully synced")
 }
 
+func query_data(en *xorm.Engine, data *Conways)(bool,error){
+	return en.Get(data)
+}
+
 func insert_data(en *xorm.Engine, data *Conways){
 	affected, _ :=en.Insert(data)
 	log.Println("Inserted user id:",data.ID,":: affected:",affected,"data")
 }
 
 func update_data(en *xorm.Engine, data *Conways){
-	affected,_ :=en.Id(data.ID).Update(&data)
+	affected,_ :=en.Id(data.ID).AllCols().Update(data)
 
 	log.Println("affected row: ", affected, data)
 
-}
-
-func query_single_data(en *xorm.Engine){
-	user:=Conways{ID: 1}
-	has,_:=en.Get(&user)
-
-	log.Println("-----------",has)
-	log.Println("-----------",user)
-
-	results, err := en.Query("select * from conways_uid_seq")
-	fmt.Print("-------------2 ", results, err)
-
-	//Another way
-	var user2 Conways
-	has2, _ :=en.Get(&user2)    //Primary key
-	log.Println("-----------",has2)
-	log.Println("-----------", user2)
 }

@@ -24,12 +24,53 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 	io.WriteString(w, "hello, "+req.URL.Query().Get(":name")+"!\n")
 }
 
+func GetGrids(w http.ResponseWriter, req *http.Request) {
+	id, err := strconv.Atoi(req.URL.Query().Get(":id"))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("Error during reading from ioutil: ", err)
+		return
+	}
+	log.Println("received patch response for", id)
+
+	var data Conways
+	data.ID=id
+
+	en := connect_database()
+	defer en.Close()
+	has, err := query_data(en, &data)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("Error during reading from database: ", err)
+		return
+	} else if !has {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("requested data not found"))
+		log.Println("requested data not found")
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	marshalledData, err := json.Marshal(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("Error during marshal data: ", err)
+		return
+	}
+	w.Write(marshalledData)
+}
+
 func PostGrids(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		log.Println("Error during reading from ioutil: ", err)
+		return
 	}
 	log.Println("received response", string(body))
 
@@ -39,6 +80,7 @@ func PostGrids(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("probably invalid input."))
 		log.Println("Error during unmarshal data: ", err)
+		return
 	}
 
 	en := connect_database()
@@ -51,6 +93,7 @@ func PostGrids(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		log.Println("Error during marshal data: ", err)
+		return
 	}
 	w.Write(marshalledData)
 }
@@ -61,7 +104,7 @@ func PatchGrids(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		log.Println("Error during reading from ioutil: ", err)
-
+		return
 	}
 	log.Println("received patch response for", id)
 
@@ -70,6 +113,7 @@ func PatchGrids(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		log.Println("Error during reading from ioutil: ", err)
+		return
 	}
 
 	var data Conways
@@ -78,6 +122,7 @@ func PatchGrids(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("probably invalid input."))
 		log.Println("Error during unmarshal data: ", err)
+		return
 	}
 	data.ID=id
 
@@ -91,6 +136,7 @@ func PatchGrids(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		log.Println("Error during marshal data: ", err)
+		return
 	}
 	w.Write(marshalledData)
 }
@@ -102,6 +148,7 @@ func ListenAndServe() {
 	m.Get("/hello/:name", http.HandlerFunc(HelloServer))
 	m.Post("/grids", http.HandlerFunc(PostGrids))
 	m.Patch("/grids/:id", http.HandlerFunc(PatchGrids))
+	m.Get("/grids/:id", http.HandlerFunc(GetGrids))
 
 	// Register this pat with the default serve mux so that other packages
 	// may also be exported. (i.e. /debug/pprof/*)
