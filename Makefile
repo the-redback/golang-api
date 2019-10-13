@@ -1,7 +1,7 @@
-IMAGE_PREFIX = maruftuhin
+REGISTRY ?= maruftuhin
 IMAGE_REPO = conways
 IMAGE_VERSION ?= latest
-IMAGE_NAME = $(IMAGE_PREFIX)/$(IMAGE_REPO):$(IMAGE_VERSION)
+IMAGE_NAME = $(REGISTRY)/$(IMAGE_REPO):$(IMAGE_VERSION)
 
 .PHONY: build push run kube-run
 
@@ -13,8 +13,5 @@ push:
 
 run:
 	docker run -p 12345:12345 -ti --net=host --rm $(IMAGE_NAME)
-
-kube-run:
-	kubectl run -i -t --image=$(IMAGE_NAME) shell --restart=Never --rm
 
 default: run
