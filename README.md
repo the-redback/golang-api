@@ -1,6 +1,6 @@
 # golang-api
 
-Postgres deploy,
+Prerequisite: deploy postgres,
 
 ```bash
 docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=pass -v $HOME/pg-data:/var/lib/postgresql/data -d postgres

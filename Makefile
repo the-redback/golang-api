@@ -3,7 +3,7 @@ IMAGE_REPO = conways
 IMAGE_VERSION ?= latest
 IMAGE_NAME = $(REGISTRY)/$(IMAGE_REPO):$(IMAGE_VERSION)
 
-.PHONY: build push run kube-run
+.PHONY: build push run
 
 build:
 	docker build --no-cache -t $(IMAGE_NAME) .
