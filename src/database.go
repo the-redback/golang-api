@@ -51,6 +51,13 @@ func insert_data(en *xorm.Engine, data *Conways){
 	log.Println("Inserted user id:",data.ID,":: affected:",affected,"data")
 }
 
+func update_data(en *xorm.Engine, data *Conways){
+	affected,_ :=en.Id(data.ID).Update(&data)
+
+	log.Println("affected row: ", affected, data)
+
+}
+
 func query_single_data(en *xorm.Engine){
 	user:=Conways{ID: 1}
 	has,_:=en.Get(&user)

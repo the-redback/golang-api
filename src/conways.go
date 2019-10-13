@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/bmizerany/pat"
 )
@@ -54,12 +55,53 @@ func PostGrids(w http.ResponseWriter, req *http.Request) {
 	w.Write(marshalledData)
 }
 
+func PatchGrids(w http.ResponseWriter, req *http.Request) {
+	id, err := strconv.Atoi(req.URL.Query().Get(":id"))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("Error during reading from ioutil: ", err)
+
+	}
+	log.Println("received patch response for", id)
+
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("Error during reading from ioutil: ", err)
+	}
+
+	var data Conways
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("probably invalid input."))
+		log.Println("Error during unmarshal data: ", err)
+	}
+	data.ID=id
+
+	en := connect_database()
+	defer en.Close()
+	update_data(en, &data)
+
+	w.WriteHeader(http.StatusCreated)
+	marshalledData, err := json.Marshal(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println("Error during marshal data: ", err)
+	}
+	w.Write(marshalledData)
+}
+
 func ListenAndServe() {
 	fmt.Println("start serving...")
 
 	m := pat.New()
 	m.Get("/hello/:name", http.HandlerFunc(HelloServer))
 	m.Post("/grids", http.HandlerFunc(PostGrids))
+	m.Patch("/grids/:id", http.HandlerFunc(PatchGrids))
 
 	// Register this pat with the default serve mux so that other packages
 	// may also be exported. (i.e. /debug/pprof/*)
